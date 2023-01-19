@@ -5,9 +5,9 @@ asgn1/tc
 asgn1/ts
 asgn1/cli
 asgn1/ser
-asgn2/
-asgn2/
-asgn2/
-asgn2/
+asgn2/tcpserver_conc.c
+asgn2/udpclient.c
+asgn2/udpserver.c
+asgn2/udp*
 a.out
 check.c
