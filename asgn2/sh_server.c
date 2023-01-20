@@ -12,6 +12,59 @@
 
 #include <dirent.h>
 
+//--------------------ALTERNATE WAY TO BIND OUTPUT OF dir COMMAND TO A STRING------------------
+// void filesBinding(char **files, char *toAdd, int i)
+// {
+//     printf("-%s-\n", toAdd);
+//     if (i)
+//     {
+//         *files = (char *)realloc((*files), strlen(*files) + 1 + strlen(toAdd) + 1);
+//         *files[strlen(*files)] = ' ';
+//         int j;
+//         for(j=strlen(*files)+1;j<strlen(*files) + 1 + strlen(toAdd);j++)
+//         {
+//             *files[j] = toAdd[j-strlen(*files)-1];
+//         }
+//         *files[j] = '\0';
+//     }
+//     else
+//     {
+//         *files = (char *)malloc(strlen(toAdd) + 1);
+//         strcpy(*files, toAdd);
+//         *files[strlen(*files)] = '\0';
+//     }
+//     printf("-%s-\n", *files);
+// }
+
+// Function to merge the packets recieved from the client
+void message_packet_merging(int sockfd, char *buf){
+
+    int index = 0;
+    char temp[50];
+    int halt = 0;
+    
+    while(!halt){
+
+        int x = recv(sockfd, temp, 50, 0);
+        if(x < 0){
+            perror("Unable to get data\n");
+            exit(0);
+        }
+        
+        for (int i = 0; i < x; i++)
+        {      
+            if(temp[i] == '\0'){
+                halt = 1;
+                buf[i+index]='\0';
+                break;
+            }
+            buf[i+index] = temp[i];
+                
+        }
+        index += x;
+    }
+}
+
 int main()
 {
     int sockfd, newsockfd;
@@ -62,8 +115,11 @@ int main()
             exit(0);
         }
 
-        if (fork == 0)
+        if (fork() == 0)
         {
+            close(sockfd);
+
+            printf("!\n");
             char username[25];       // Buffer for storing the username
             for (i = 0; i < 25; i++) // Initializing the username buffer
                 username[i] = '\0';
@@ -78,6 +134,8 @@ int main()
             int flag = 0;
             while (fgets(line, 25, fp) != NULL)
             {
+                line[strlen(line) - 1] = '\0';
+                // printf("%s-\n", line);
                 if (strcmp(line, username) == 0)
                 {
                     flag = 1;
@@ -93,23 +151,29 @@ int main()
 
             while (1)
             {
-                char command[50];        // Buffer for storing the command
+                char command[1000];        // Buffer for storing the command
                 for (i = 0; i < 50; i++) // Initializing the command buffer
                     command[i] = '\0';
 
-                recv(newsockfd, command, 50, 0); // Recieving the command from the client
+                message_packet_merging(newsockfd, command); // Recieving the command from the client
 
-                char commandType1[2];
-                strncpy(commandType1, command, 2);
-                char commandType2[3];
-                strncpy(commandType2, command, 3);
+                // printf("%s-\n", command);                    -----
+                //                                                  |
+                // char commandType1[2];                            |
+                // strncpy(commandType1, command, 3);               |
+                // printf("%s-1\n", commandType1);                  |
+                // char commandType2[3];                            |
+                // strncpy(commandType2, command, 4);               |-----> Alternate way to compare commands
+                // printf("%s-2\n", commandType2);                  |
+                //                                                  |
+                // char command1[3] = "cd\0";                       |
+                // char command2[4] = "dir\0";                      |
+                // char command3[4] = "pwd\0";                  -----
 
-                char command1[2] = "ch";
-                char command2[3] = "dir";
-                char command3[3] = "pwd";
-
-                if (strcmp(command1, commandType1) == 0)
+//--------------CD--------------------------------------------------------------------------------------------------------------------------------
+                if (command[0] == 'c' && command[1] == 'd' && (command[2] == '\0' || command[2] == ' '))
                 {
+                    // printf("cd--\n");
                     char *path = command + 3;
                     if (chdir(path) == 0)
                     {
@@ -120,17 +184,43 @@ int main()
                         send(newsockfd, errorInRunningCommand, strlen(errorInRunningCommand) + 1, 0);
                     }
                 }
-                else if (strcmp(command2, commandType2) == 0)
+//--------------DIR-------------------------------------------------------------------------------------------------------------------------------
+                else if (command[0] == 'd' && command[1] == 'i' && command[2] == 'r' && (command[3] == '\0' || command[3] == ' '))
                 {
+                    // printf("dir--\n");
                     char *path = command + 4;
+                    char *path2 = ".";
+                    printf("%s-\n", path);
                     DIR *dir;
                     struct dirent *ent;
-                    if ((dir = opendir(path)) != NULL)
+                    char *files = (char *)malloc(1000 * sizeof(char));
+
+                    if ((dir = opendir(path)) != NULL && strlen(command)>4)
                     {
                         while ((ent = readdir(dir)) != NULL)
                         {
-                            send(newsockfd, ent->d_name, strlen(ent->d_name) + 1, 0);
+                            // filesBinding(&files, ent->d_name, i);
+                            strcat(files, ent->d_name);
+                            strcat(files, "\n");
+                            // send(newsockfd, ent->d_name, strlen(ent->d_name) + 1, 0);
                         }
+                        send(newsockfd, files, strlen(files) + 1, 0);
+                        printf("%s-f\n", files);
+                        // free(files);
+                        closedir(dir);
+                    }
+                    else if ((dir = opendir(path2)) != NULL && strlen(command)<=4)
+                    {   
+                        while ((ent = readdir(dir)) != NULL)
+                        {
+                            // filesBinding(&files, ent->d_name, i);
+                            strcat(files, ent->d_name);
+                            strcat(files, "\n");
+                            // send(newsockfd, ent->d_name, strlen(ent->d_name) + 1, 0);
+                        }
+                        send(newsockfd, files, strlen(files) + 1, 0);
+                        printf("%s-f\n", files);
+                        // free(files);
                         closedir(dir);
                     }
                     else
@@ -138,8 +228,10 @@ int main()
                         send(newsockfd, errorInRunningCommand, strlen(errorInRunningCommand) + 1, 0);
                     }
                 }
-                else if (strcmp(command3, commandType2) == 0)
+//--------------PWD-------------------------------------------------------------------------------------------------------------------------------
+                else if (command[0] == 'p' && command[1] == 'w' && command[2] == 'd' && command[3] == '\0')
                 {
+                    printf("pwd--\n");
                     long size;
                     char *buf;
                     char *path;
@@ -162,15 +254,6 @@ int main()
         }
 
         close(newsockfd); // Closing the socket
-
-        // time_t t; // Variable to store the time using a non primitive data type
-        // time(&t); // Storing the time in t
-
-        // char timeNdate[20];                                          // Variable to store the time and date in a string format
-        // strftime(timeNdate, 20, "%H:%M:%S %d/%m/%Y", localtime(&t)); // Storing the time and date in a string format
-
-        // send(newsockfd, timeNdate, strlen(timeNdate) + 1, 0); // Sending the time and date to the client
-        // close(newsockfd);                                     // Closing the socket
     }
     return 0;
 }

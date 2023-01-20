@@ -9,5 +9,11 @@ asgn2/tcpserver_conc.c
 asgn2/udpclient.c
 asgn2/udpserver.c
 asgn2/udp*
+asgn2/tc
+asgn2/ts
+asgn2/shc
+asgn2/shs
+asgn2/abc
+asgn2/usernames.txt
 a.out
 check.c
