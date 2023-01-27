@@ -23,6 +23,10 @@ int main(int argc, char *argv[])
     argv[2] = port number of server 1
     argv[3] = port number of server 2
     */
+    double time_spent = 0.0;
+    struct timeval begin, current;
+
+    gettimeofday(&begin, NULL);
 
     int serverPort1 = atoi(argv[2]);
     int serverPort2 = atoi(argv[3]);
@@ -69,9 +73,31 @@ int main(int argc, char *argv[])
     // Implementing an iterative server
     while (1)
     {
-        int ret = poll(&fds, 1, 5000); // Waiting for 5 secs to ask the server for load
+        // -------Using clock() function
+        // current = clock();
+        // time_spent = (double)(current - begin) / CLOCKS_PER_SEC;
+        // printf("Time spent: %f\n", time_spent);
+        // time_spent = time_spent*1000;
+        // long int time = (long int)time_spent;
+        // int rem = time % 5000;
+
+        //---------Using gettimeofday() function
+        gettimeofday(&current, NULL);
+        time_spent = (double)(current.tv_usec - begin.tv_usec) / 1000000 + (double)(current.tv_sec - begin.tv_sec);
+        time_spent = time_spent * 1000;
+
+        long int time = (long int)time_spent;
+        long int rem = time % 5000;
+
+        int ret = poll(&fds, 1, 5000-rem); // Waiting for 5 secs to ask the server for load
         if (ret == 0)
         {
+            for (i = 0; i < 10; i++)
+            {
+                loadSTR1[i] = '\0';
+                loadSTR2[i] = '\0';
+            }
+
             int sockfd1_load, sockfd2_load;
             struct sockaddr_in serv_addr1_load, serv_addr2_load; // Specifying the server address
 
@@ -93,10 +119,12 @@ int main(int argc, char *argv[])
             }
 
             send(sockfd1_load, sendLoad, strlen(sendLoad) + 1, 0);
-            recv(sockfd1_load, &loadSTR1, strlen(loadSTR1), 0);
+            recv(sockfd1_load, &loadSTR1, 10, 0);
+
             close(sockfd1_load);
 
             load1 = atoi(loadSTR1);
+            printf("Load received from %s %s\n", inet_ntoa(serv_addr2_load.sin_addr), loadSTR1);
 
             //----------Server 2----------------
             if ((sockfd2_load = socket(AF_INET, SOCK_STREAM, 0)) < 0)
@@ -116,10 +144,12 @@ int main(int argc, char *argv[])
             }
 
             send(sockfd2_load, sendLoad, strlen(sendLoad) + 1, 0);
-            recv(sockfd2_load, &loadSTR2, strlen(loadSTR2), 0);
+            recv(sockfd2_load, &loadSTR2, 10, 0);
+            
             close(sockfd2_load);
 
             load2 = atoi(loadSTR2);
+            printf("Load received from %s %s\n", inet_ntoa(serv_addr2_load.sin_addr), loadSTR2);
         }
         else
         {
@@ -166,6 +196,7 @@ int main(int argc, char *argv[])
 
                     // Sending the request to the server
                     send(sockfd1, sendTime, strlen(sendTime) + 1, 0);
+                    printf("Sending client request to %s\n", inet_ntoa(serv_addr1.sin_addr));
 
                     // Receiving the time from the server and closing the connection
                     char buffer[20];
@@ -202,6 +233,7 @@ int main(int argc, char *argv[])
 
                     // Sending the request to the server
                     send(sockfd2, sendTime, strlen(sendTime) + 1, 0);
+                    printf("Sending client request to %s\n", inet_ntoa(serv_addr2.sin_addr));
 
                     // Receiving the time from the server and closing the connection
                     char buffer[20];
@@ -215,9 +247,9 @@ int main(int argc, char *argv[])
 
                 close(newsockfd); // Closing the socket
                 exit(0);
-            }//fork end
+            } // fork end
 
             close(newsockfd); // Closing the socket
-        }//poll end
-    }//while end
-}//main end
+        }                     // poll end
+    }                         // while end
+} // main end

@@ -12,6 +12,8 @@
 
 int main(int argc, char *argv[])
 {
+    srand((unsigned)time(NULL));
+    
     if (argc <= 1)
     {
         perror("No port number provided\n");
@@ -68,16 +70,15 @@ int main(int argc, char *argv[])
 
         if (buf[5] == 'L')
         {
-            srand((unsigned)time(NULL));
 
-            int num = rand()%100 + 1;                       // Generating a random number between 1 and 100
-            printf("Load sent: %d",num);                    // Printing the random number
+            int num = rand() % 100 + 1;     // Generating a random number between 1 and 100
+            printf("Load sent: %d\n", num); // Printing the random number
 
             char numstr[10];
             sprintf(numstr, "%d", num);                     // Converting the random number to a string
             send(newsockfd, numstr, strlen(numstr) + 1, 0); // Sending the random number to the client
 
-            close(newsockfd);                               // Closing the socket
+            close(newsockfd); // Closing the socket
         }
         else
         {
@@ -89,6 +90,8 @@ int main(int argc, char *argv[])
 
             send(newsockfd, timeNdate, strlen(timeNdate) + 1, 0); // Sending the time and date to the client
             close(newsockfd);                                     // Closing the socket
+
+            printf("Time sent\n");
         }
     }
     return 0;
