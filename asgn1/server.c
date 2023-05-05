@@ -134,8 +134,7 @@ int main()
     serv_addr.sin_port = htons(20000);
 
     // Trying to bind the socket with the server address and exiting if failed
-    if (bind(sockfd, (struct sockaddr *)&serv_addr,
-             sizeof(serv_addr)) < 0)
+    if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
     {
         perror("Unable to bind local address\n");
         exit(0);

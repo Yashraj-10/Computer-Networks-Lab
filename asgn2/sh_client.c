@@ -79,7 +79,7 @@ int main()
 
 	// Specifying the server address
     serv_addr.sin_family	= AF_INET;
-	inet_aton("192.168.50.177", &serv_addr.sin_addr);
+	inet_aton("127.0.0.0", &serv_addr.sin_addr);
 	serv_addr.sin_port	= htons(20000);
 
 	// Trying to connect with the server and exiting if failed
